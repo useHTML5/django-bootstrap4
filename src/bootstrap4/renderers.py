@@ -31,6 +31,7 @@ from .forms import (
 )
 from .text import text_value
 from .utils import add_css_class, render_template_file
+from .widgets import RadioSelectButtonGroup
 
 try:
     # If Django is set up without a database, importing this widget gives RuntimeError
@@ -204,6 +205,10 @@ class FormRenderer(BaseRenderer):
 class FieldRenderer(BaseRenderer):
     """Default field renderer."""
 
+    USE_CUSTOM_CONTROLS = get_bootstrap_setting("use_custom_controls")
+    CUSTOM_CONTROL_CSS_CLASS = "custom-control-input" if USE_CUSTOM_CONTROLS else "form-check-input"
+    CUSTOM_LABEL_CSS_CLASS = "custom-control-label" if USE_CUSTOM_CONTROLS else "form-check-label"
+
     # These widgets will not be wrapped in a form-control class
     WIDGETS_NO_FORM_CONTROL = (CheckboxInput, RadioSelect, CheckboxSelectMultiple, FileInput)
 
@@ -279,7 +284,7 @@ class FieldRenderer(BaseRenderer):
             # For these widget types, add the size class here
             classes = add_css_class(classes, self.get_size_class())
         elif isinstance(widget, CheckboxInput):
-            classes = add_css_class(classes, "form-check-input", prepend=True)
+            classes = add_css_class(classes, self.CUSTOM_CONTROL_CSS_CLASS, prepend=True)
         elif isinstance(widget, FileInput):
             classes = add_css_class(classes, "form-control-file", prepend=True)
 
@@ -332,8 +337,11 @@ class FieldRenderer(BaseRenderer):
         # if we tried to 'html.replace("input", "input class=...")'
         soup = BeautifulSoup(html, features="html.parser")
         for label in soup.find_all("label"):
-            label.attrs["class"] = label.attrs.get("class", []) + ["form-check-label"]
-            label.input.attrs["class"] = label.input.attrs.get("class", []) + ["form-check-input"]
+            label.attrs.setdefault("class", []).append(self.CUSTOM_LABEL_CSS_CLASS)
+            control = label.input
+            control.attrs.setdefault("class", []).append(self.CUSTOM_CONTROL_CSS_CLASS)
+            label.parent.contents.insert(0, control)
+            label.contents.remove(control)
         return str(soup)
 
     def add_checkbox_label(self, html):
@@ -341,7 +349,7 @@ class FieldRenderer(BaseRenderer):
             content=self.field.label,
             label_for=self.field.id_for_label,
             label_title=escape(strip_tags(self.field_help)),
-            label_class="form-check-label",
+            label_class=self.CUSTOM_LABEL_CSS_CLASS,
         )
 
     def fix_date_select_input(self, html):
@@ -352,10 +360,11 @@ class FieldRenderer(BaseRenderer):
         return '<div class="row bootstrap4-multi-input">{html}</div>'.format(html=html)
 
     def post_widget_render(self, html):
-        if isinstance(self.widget, RadioSelect):
-            html = self.list_to_class(html, "radio radio-success")
+        prefix = "custom-control custom-" if self.USE_CUSTOM_CONTROLS else ""
+        if isinstance(self.widget, RadioSelect) and not isinstance(self.widget, RadioSelectButtonGroup):
+            html = self.list_to_class(html, f"{prefix}radio radio-success")
         elif isinstance(self.widget, CheckboxSelectMultiple):
-            html = self.list_to_class(html, "checkbox")
+            html = self.list_to_class(html, f"{prefix}checkbox")
         elif isinstance(self.widget, SelectDateWidget):
             html = self.fix_date_select_input(html)
         elif isinstance(self.widget, CheckboxInput):
@@ -366,7 +375,12 @@ class FieldRenderer(BaseRenderer):
         if isinstance(self.widget, CheckboxInput):
             # Wrap checkboxes
             # Note checkboxes do not get size classes, see #318
+<<<<<<< HEAD
             html = '<div class="form-check">{html}</div>'.format(html=html)
+=======
+            cls = "custom-control custom-checkbox" if self.USE_CUSTOM_CONTROLS else "form-check"
+            html = f'<div class="{cls}">{html}</div>'
+>>>>>>> 834212046106636aded8dcebdd056fcc695d2079
         return html
 
     def make_input_group_addon(self, inner_class, outer_class, content):

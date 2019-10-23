@@ -375,12 +375,8 @@ class FieldRenderer(BaseRenderer):
         if isinstance(self.widget, CheckboxInput):
             # Wrap checkboxes
             # Note checkboxes do not get size classes, see #318
-<<<<<<< HEAD
-            html = '<div class="form-check">{html}</div>'.format(html=html)
-=======
             cls = "custom-control custom-checkbox" if self.USE_CUSTOM_CONTROLS else "form-check"
             html = f'<div class="{cls}">{html}</div>'
->>>>>>> 834212046106636aded8dcebdd056fcc695d2079
         return html
 
     def make_input_group_addon(self, inner_class, outer_class, content):
@@ -552,3 +548,4 @@ class InlineFieldRenderer(FieldRenderer):
 
     def get_label_class(self):
         return add_css_class(self.label_class, "sr-only")
+
